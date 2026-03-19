@@ -6,7 +6,8 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"encoding/json"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -33,6 +34,16 @@ type Hub struct {
 	redisClient *redis.Client // our connection to the global brain
 }
 
+// new Chat-message struct for mapping the incoming JSON data to GO property
+// chat-message struct
+type ChatMessage struct{
+	Type string `json:"type"`
+	SenderID string `json:"sender_id"`
+	TargetID string `json:"target_id"`
+	Content string `json:"content"`
+
+} 
+
 func newHub(rdb *redis.Client) *Hub {
 	return &Hub{
 		broadcast:         make(chan []byte),
@@ -56,11 +67,24 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		case message := <-h.broadcast:
-			// Publish: Rather than sending the message to local clients,  pushed to the global redis channel
-			err := h.redisClient.Publish(ctx, "chat_room", message).Err()
+			// Create a new empty instance of the ChatMessage struct
+			var parsedMsg ChatMessage
+
+			// UNmarshal the incoming json data into the ChatMessage struct 
+			err := json.Unmarshal(message, &parsedMsg)
 			if err != nil {
-				log.Printf("Error publishing message to Redis: %v", err)
+				fmt.Println("Error:- ", err)
 			}
+
+			// Creating a new channel based on the target_id of the incoming message
+			channelName := "user_channel_" + parsedMsg.TargetID
+
+			//publish the message to the Redis based on the selected channel
+			err = h.redisClient.Publish(ctx, channelName, message).Err()
+			if err != nil {
+				fmt.Printf("Error publishing message to Redis: %v", err)
+			}
+			
 
 		case message := <-h.incomingFromRedis:
 			// Subscribe: Redis sent the message! Bradcasting to the local clients
