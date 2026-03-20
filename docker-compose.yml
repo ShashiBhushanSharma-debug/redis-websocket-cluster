@@ -17,11 +17,21 @@ services:
     depends_on:
       - redis-broker
 
-    # Second GO server instance
+  # Second GO server instance
   chat-node-b:
     build: .
     ports:
       - "8082:8080"
+    environment:
+      - REDIS_URL=redis-broker:6379
+    depends_on:
+      - redis-broker 
+  
+  # Third GO server instance
+  chat-node-c:
+    build: .
+    ports:
+      - "8083:8080"
     environment:
       - REDIS_URL=redis-broker:6379
     depends_on:

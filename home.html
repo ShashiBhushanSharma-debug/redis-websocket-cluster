@@ -40,9 +40,14 @@ window.onload = function () {
         return false;
     };
 
+    // Adding prompt to enter the node id as soon as the page loads
+    // THe connection is established using this userID to find the appropriate client connection 
+
+    var userID = prompt("Enter your node ID (e.g. node_a, node_b, node_c): ");
+
     if (window["WebSocket"]) {
         // We connect to the WebSocket endpoint
-        conn = new WebSocket("ws://" + document.location.host + "/ws");
+        conn = new WebSocket("ws://" + document.location.host + "/ws?id=" + userID);
         conn.onclose = function (evt) {
             var item = document.createElement("div");
             item.innerHTML = "<b>Connection closed.</b>";
