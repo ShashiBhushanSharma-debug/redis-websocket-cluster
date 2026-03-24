@@ -12,7 +12,7 @@ RUN go mod download
 
 # Copy the chat server and the html interface
 COPY *.go ./
-COPY home.html ./   
+COPY index ./   
 
 # Build the GO binary 
 RUN go build -o chat-server .

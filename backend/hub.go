@@ -89,7 +89,7 @@ func (h *Hub) run() {
 		case message := <-h.incomingFromRedis:
 			// Parsing the message recieved from Redis
 			var parsedMsg ChatMessage
-			err := json.Unmarshal([]byte(message), &parsedMsg)
+			err := json.Unmarshal(message, &parsedMsg)
 			if err != nil {
 				fmt.Println("Error:- ", err)
 				continue

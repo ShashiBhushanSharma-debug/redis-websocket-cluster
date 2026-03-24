@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Targeted Routing Node</title>
+<script type="text/javascript">
+window.onload = function () {
+    var conn;
+    var msg = document.getElementById("msg");
+    var myId = document.getElementById("myId");
+    var targetId = document.getElementById("targetId");
+    var log = document.getElementById("log");
+
+    function appendLog(item) {
+        var doScroll = log.scrollTop > log.scrollHeight - log.clientHeight - 1;
+        log.appendChild(item);
+        if (doScroll) {
+            log.scrollTop = log.scrollHeight - log.clientHeight;
+        }
+    }
+
+    document.getElementById("form").onsubmit = function () {
+        if (!conn) { return false; }
+        if (!msg.value || !myId.value || !targetId.value) { return false; }
+        
+        // THE CORE SHIFT: Packaging the raw text into a structured JSON envelope
+        var payload = {
+            sender_id: myId.value,
+            target_id: targetId.value,
+            content: msg.value
+        };
+        
+        // Send the JSON string to the Go backend
+        conn.send(JSON.stringify(payload));
+        
+        // Print our own message to the screen and clear the input
+        var item = document.createElement("div");
+        item.innerHTML = "<i>Me -> " + targetId.value + ":</i> " + msg.value;
+        appendLog(item);
+        msg.value = "";
+        return false;
+    };
+
+    // Adding prompt to enter the node id as soon as the page loads
+    // THe connection is established using this userID to find the appropriate client connection 
+
+    var userID = prompt("Enter your node ID (e.g. node_a, node_b, node_c): ");
+
+    if (window["WebSocket"]) {
+        // We connect to the WebSocket endpoint
+        conn = new WebSocket("ws://" + document.location.host + "/ws?id=" + userID);
+        conn.onclose = function (evt) {
+            var item = document.createElement("div");
+            item.innerHTML = "<b>Connection closed.</b>";
+            appendLog(item);
+        };
+        conn.onmessage = function (evt) {
+            var messages = evt.data.split('\n');
+            for (var i = 0; i < messages.length; i++) {
+                var item = document.createElement("div");
+                item.innerText = messages[i];
+                appendLog(item);
+            }
+        };
+    } else {
+        var item = document.createElement("div");
+        item.innerHTML = "<b>Your browser does not support WebSockets.</b>";
+        appendLog(item);
+    }
+};
+</script>
+<style type="text/css">
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@400;500;600;800&display=swap');
+
+:root {
+    --bg-color: #050505;
+    --panel-bg: rgba(10, 14, 23, 0.65);
+    --border-color: rgba(255, 255, 255, 0.1);
+    --text-color: #c9d1d9;
+    --accent-color: #00ffff;
+    --accent-glow: rgba(0, 255, 255, 0.4);
+    --success-color: #00ff88;
+    --font-mono: 'Fira Code', monospace;
+    --font-sans: 'Inter', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--bg-color);
+    font-family: var(--font-sans);
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1000px;
+}
+
+body::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: 
+        radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.08), transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+    z-index: -2;
+    animation: backgroundPan 20s linear infinite;
+}
+
+body::after {
+    content: "";
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 255, 255, 0.15), transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    pointer-events: none;
+    animation: pulseOrb 8s ease-in-out infinite alternate;
+}
+
+@keyframes backgroundPan {
+    from { background-position: 0 0, 0 0, 0 0; }
+    to { background-position: 0 0, 40px 40px, 40px 40px; }
+}
+
+@keyframes pulseOrb {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+    100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+}
+
+.app-container {
+    display: flex;
+    flex-direction: column;
+    width: 90%;
+    max-width: 1100px;
+    height: 85vh;
+    background: var(--panel-bg);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: 
+        0 30px 60px -12px rgba(0, 0, 0, 0.8), 
+        0 0 50px rgba(0, 255, 255, 0.1),
+        inset 0 0 20px rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+    animation: float 6s ease-in-out infinite;
+    transform-style: preserve-3d;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px) rotateX(2deg); }
+    50% { transform: translateY(-10px) rotateX(-1deg); }
+    100% { transform: translateY(0px) rotateX(2deg); }
+}
+
+header {
+    flex: 0 0 auto;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background: linear-gradient(to right, rgba(255,255,255,0.02), transparent);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    z-index: 10;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+header h1::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-color: var(--success-color);
+    border-radius: 50%;
+    margin-right: 15px;
+    box-shadow: 0 0 15px var(--success-color), 0 0 30px var(--success-color);
+    animation: blinkIndicator 2s infinite;
+}
+
+@keyframes blinkIndicator {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.main-container {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    gap: 1.5rem;
+    overflow: hidden;
+}
+
+#log {
+    flex: 1 1 auto;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 1.5rem;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    box-shadow: inset 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+#log div {
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    word-wrap: break-word;
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+#log div:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+#log i {
+    color: var(--accent-color);
+    font-style: normal;
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+#log b {
+    color: #ff3366;
+    font-weight: 600;
+    text-shadow: 0 0 8px rgba(255, 51, 102, 0.4);
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-color); }
+
+.form-wrapper {
+    flex: 0 0 auto;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 1.5rem;
+}
+
+#form {
+    display: flex;
+    gap: 20px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1 1 auto;
+}
+
+.input-group.msg-group {
+    flex: 3 1 auto;
+}
+
+.input-group label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+}
+
+input[type="text"] {
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+    outline: none;
+    height: 54px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent-color);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.5), 0 0 15px rgba(0, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.transmit-btn {
+    position: relative;
+    background: linear-gradient(90deg, #00ffff, #0055ff, #8a2be2, #00ffff);
+    background-size: 300% 100%;
+    color: #fff;
+    border: none;
+    padding: 0 40px;
+    border-radius: 10px;
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    height: 54px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+    animation: gradientFlow 4s linear infinite;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.transmit-btn::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    background: linear-gradient(90deg, #00ffff, #0055ff, #8a2be2, #00ffff);
+    background-size: 300% 100%;
+    z-index: -1;
+    border-radius: 12px;
+    filter: blur(15px);
+    opacity: 0.6;
+    animation: gradientFlow 4s linear infinite;
+    transition: opacity 0.3s ease;
+}
+
+.transmit-btn span {
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.transmit-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+}
+
+.transmit-btn:hover::before {
+    opacity: 1;
+    filter: blur(20px);
+}
+
+.transmit-btn:active {
+    transform: translateY(1px) scale(0.98);
+}
+
+@keyframes gradientFlow {
+    0% { background-position: 100% 0%; }
+    100% { background-position: -200% 0%; }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 768px) {
+    #form { flex-direction: column; align-items: stretch; }
+    .transmit-btn { height: 60px; }
+    .app-container { height: 95vh; width: 95%; }
+}
+</style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Targeted Routing Node</h1>
+        </header>
+        <div class="main-container">
+            <div id="log"></div>
+            <div class="form-wrapper">
+                <form id="form">
+                    <div class="input-group">
+                        <label for="myId">Source ID</label>
+                        <input type="text" id="myId" placeholder="e.g., node_A" required autocomplete="off" />
+                    </div>
+                    <div class="input-group">
+                        <label for="targetId">Destination ID</label>
+                        <input type="text" id="targetId" placeholder="e.g., node_B" required autocomplete="off" />
+                    </div>
+                    <div class="input-group msg-group">
+                        <label for="msg">Message Payload</label>
+                        <input type="text" id="msg" placeholder="Enter message..." required autocomplete="off" />
+                    </div>
+                    <button type="submit" class="transmit-btn">
+                        <span>Transmit</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

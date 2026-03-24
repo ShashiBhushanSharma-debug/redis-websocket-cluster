@@ -16,6 +16,16 @@ services:
       - REDIS_URL=redis-broker:6379
     depends_on:
       - redis-broker
+    
+    # use the watch mode of docker compose
+    develop:
+      watch:
+        - action: sync
+          path: ./index/home.html
+          target: /app/index/home.html
+        - action: rebuild
+          path: .
+        
 
   # Second GO server instance
   chat-node-b:
@@ -26,7 +36,15 @@ services:
       - REDIS_URL=redis-broker:6379
     depends_on:
       - redis-broker 
-  
+    # use the watch mode of docker compose
+    develop:
+      watch:
+        - action: sync
+          path: ./index/home.html
+          target: /app/index/home.html
+        - action: rebuild
+          path: .
+        
   # Third GO server instance
   chat-node-c:
     build: .
@@ -36,3 +54,11 @@ services:
       - REDIS_URL=redis-broker:6379
     depends_on:
       - redis-broker 
+    # use the watch mode of docker compose
+    develop:
+      watch:
+        - action: sync
+          path: ./index/home.html
+          target: /app/index/home.html
+        - action: rebuild
+          path: .
